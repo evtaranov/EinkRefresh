@@ -1,22 +1,20 @@
 #!/bin/bash
+# Builds EinkRefresh.app into ~/Applications.
 set -euo pipefail
-cd "$(dirname "$0")"
+
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$HOME/Applications/EinkRefresh.app"
+
+rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-swiftc -O main.swift -o "$APP/Contents/MacOS/EinkRefresh"
-cat > "$APP/Contents/Info.plist" <<'P'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>local.eink-refresh</string>
-<key>CFBundleName</key><string>EinkRefresh</string>
-<key>CFBundleExecutable</key><string>EinkRefresh</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.0</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>LSMinimumSystemVersion</key><string>13.0</string>
-<key>LSUIElement</key><true/>
-</dict></plist>
-P
+cp "$SRC_DIR/Info.plist" "$APP/Contents/Info.plist"
+
+swiftc \
+	-O \
+	-target "$(uname -m)-apple-macos13.0" \
+	-o "$APP/Contents/MacOS/EinkRefresh" \
+	"$SRC_DIR/main.swift"
+
 codesign --force --sign - "$APP"
-echo "$APP"
+
+echo "built: $APP"

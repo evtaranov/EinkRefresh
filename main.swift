@@ -2,8 +2,9 @@ import AppKit
 import Carbon.HIToolbox
 import ServiceManagement
 
-let holdSeconds = 0.15
-let einkDisplayName = "DS-DP"
+let defaults = UserDefaults.standard
+let holdSeconds: Double = defaults.object(forKey: "holdSeconds") == nil ? 0.15 : defaults.double(forKey: "holdSeconds")
+let einkDisplayName = defaults.string(forKey: "displayName") ?? "DS-DP"
 
 struct HotKey {
     var keyCode: UInt32
