@@ -195,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func updateDurationState() {
-        durationItem.title = String(format: "Flash duration  (%g s per colour)", holdSeconds)
+        durationItem.title = String(format: "Duration  %g s", holdSeconds)
         durationItem.submenu?.items.forEach { $0.state = abs(Double($0.tag) / 10 - holdSeconds) < 0.001 ? .on : .off }
     }
 
