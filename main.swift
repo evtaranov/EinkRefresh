@@ -3,7 +3,7 @@ import Carbon.HIToolbox
 import ServiceManagement
 
 let defaults = UserDefaults.standard
-let holdSeconds: Double = defaults.object(forKey: "holdSeconds") == nil ? 0.15 : defaults.double(forKey: "holdSeconds")
+var holdSeconds: Double = defaults.object(forKey: "holdSeconds") == nil ? 0.15 : defaults.double(forKey: "holdSeconds")
 let einkDisplayName = defaults.string(forKey: "displayName") ?? "DS-DP"
 
 struct HotKey {
@@ -67,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var refreshItem: NSMenuItem!
     var loginItem: NSMenuItem!
+    var durationItem: NSMenuItem!
     var hotKey = HotKey.load()
     var hotKeyRef: EventHotKeyRef?
     var flashing = false
@@ -81,6 +82,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         refreshItem = NSMenuItem(title: "", action: #selector(flash), keyEquivalent: "")
         menu.addItem(refreshItem)
         menu.addItem(NSMenuItem(title: "Change hotkey…", action: #selector(recordHotKey), keyEquivalent: ""))
+        durationItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let durations = NSMenu()
+        for step in 1...10 {
+            let item = NSMenuItem(title: String(format: "%.1f s", Double(step) / 10), action: #selector(pickDuration(_:)), keyEquivalent: "")
+            item.tag = step
+            durations.addItem(item)
+        }
+        durationItem.submenu = durations
+        menu.addItem(durationItem)
+        updateDurationState()
         menu.addItem(.separator())
         loginItem = NSMenuItem(title: "Launch at login", action: #selector(toggleLogin), keyEquivalent: "")
         menu.addItem(loginItem)
@@ -167,13 +178,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             w.orderFrontRegardless()
             return w
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + holdSeconds) {
+        let hold = holdSeconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
             windows.forEach { $0.backgroundColor = .white }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + holdSeconds * 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold * 2) {
             windows.forEach { $0.close() }
             self.flashing = false
         }
+    }
+
+    @objc func pickDuration(_ sender: NSMenuItem) {
+        holdSeconds = Double(sender.tag) / 10
+        defaults.set(holdSeconds, forKey: "holdSeconds")
+        updateDurationState()
+    }
+
+    func updateDurationState() {
+        durationItem.title = String(format: "Flash duration  (%g s per colour)", holdSeconds)
+        durationItem.submenu?.items.forEach { $0.state = abs(Double($0.tag) / 10 - holdSeconds) < 0.001 ? .on : .off }
     }
 
     @objc func toggleLogin() {
