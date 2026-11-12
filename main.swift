@@ -84,8 +84,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(NSMenuItem(title: "Change hotkey…", action: #selector(recordHotKey), keyEquivalent: ""))
         durationItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         let durations = NSMenu()
-        for step in 1...10 {
-            let item = NSMenuItem(title: String(format: "%.1f s", Double(step) / 10), action: #selector(pickDuration(_:)), keyEquivalent: "")
+        for step in stride(from: 10, through: 30, by: 5) {
+            let item = NSMenuItem(title: String(format: "%.2f s", Double(step) / 100), action: #selector(pickDuration(_:)), keyEquivalent: "")
             item.tag = step
             durations.addItem(item)
         }
@@ -189,14 +189,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func pickDuration(_ sender: NSMenuItem) {
-        holdSeconds = Double(sender.tag) / 10
+        holdSeconds = Double(sender.tag) / 100
         defaults.set(holdSeconds, forKey: "holdSeconds")
         updateDurationState()
     }
 
     func updateDurationState() {
         durationItem.title = String(format: "Duration  %g s", holdSeconds)
-        durationItem.submenu?.items.forEach { $0.state = abs(Double($0.tag) / 10 - holdSeconds) < 0.001 ? .on : .off }
+        durationItem.submenu?.items.forEach { $0.state = abs(Double($0.tag) / 100 - holdSeconds) < 0.001 ? .on : .off }
     }
 
     @objc func toggleLogin() {

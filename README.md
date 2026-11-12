@@ -7,7 +7,7 @@ A small macOS menu bar agent. No dependencies: a single Swift file built with
 the system `swiftc`.
 
 - **F13** by default; **Change hotkey…** in the menu records any key or combination
-- **Duration** submenu: 0.1 to 1.0 s per colour in 0.1 s steps
+- **Duration** submenu: 0.10 to 0.30 s per colour in 0.05 s steps
 - Flashes only the e-ink display, and every screen if it is not connected
 - **Launch at login** toggle in the menu
 - Needs no Accessibility permission
