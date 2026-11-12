@@ -2,7 +2,8 @@
 
 A macOS menu bar app that clears ghosting on an e-ink monitor (built for the Bigme B251) by flashing the screen black, then white.
 
-- Press **F13** or choose **Refresh screen** from the menu bar icon.
+- Press the hotkey (**F13** by default) or choose **Refresh screen** from the menu bar icon.
+- **Change hotkey…** records any key or key combination; the choice is remembered.
 - Flashes only the display named `DS-DP`; if it is not connected, flashes every screen.
 - **Launch at login** toggle in the menu.
 - Needs no Accessibility permission.
@@ -22,7 +23,6 @@ Edit the constants at the top of `main.swift`, then rebuild:
 
 - `holdSeconds` — time per colour (default `0.15`)
 - `einkDisplayName` — display to flash (default `DS-DP`)
-- `kVK_F13` in `registerHotKey` — the hotkey
 
 ## Why not the monitor's own refresh button
 
