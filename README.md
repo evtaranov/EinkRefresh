@@ -7,9 +7,8 @@ A small macOS menu bar agent. No dependencies: a single Swift file built with
 the system `swiftc`.
 
 - **F13** by default; **Change hotkey…** in the menu records any key or combination
-- **Adaptive flash** (default): light pixels go black then white, dark pixels
-  go white then black, per colour channel, so nothing is repainted needlessly
-- **Black / white flash**: the whole screen goes black, then white
+- Light pixels go black then white, dark pixels go white then black, per
+  colour channel, so nothing is repainted needlessly
 - **Duration** submenu: 0.10 to 0.30 s per phase in 0.05 s steps
 - Flashes only the e-ink display, and every screen if it is not connected
 - **Launch at login** toggle in the menu
@@ -92,21 +91,19 @@ Inside `main.swift`:
 
 - **Hotkey** -- Carbon `RegisterEventHotKey`, which is why no Accessibility
   grant is needed. The chosen key is stored in user defaults.
-- **Adaptive flash** -- two display gamma tables set with
+- **Flash** -- two display gamma tables set with
   `CGSetDisplayTransferByTable`. The first maps every channel value to its far
   extreme (below half to full, above half to zero), the second to its near
   extreme; then `CGDisplayRestoreColorSyncSettings` brings the picture back.
   It needs no screenshot and no Screen Recording permission, and it acts on
   live content. A single inverted frame was tried first and cleared white
   areas worse than two phases.
-- **Black / white flash** -- a borderless window at screen-saver level covering
-  the display, black for `holdSeconds`, then white for `holdSeconds`.
 - **Launch at login** -- `SMAppService.mainApp`.
 
 ## Known limitations
 
 - **Not a hardware refresh.** Heavy ghosting may need the real button.
-- **Adaptive flash resets display gamma.** Apps that keep their own gamma
+- **The flash resets display gamma.** Apps that keep their own gamma
   table (software brightness or colour adjustments) may need to reapply it
   after a flash.
 - **A hotkey taken by another app cannot be registered.** The previous one is
