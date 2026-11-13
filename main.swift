@@ -10,15 +10,29 @@ struct HotKey {
     var keyCode: UInt32
     var modifiers: UInt32
     var label: String
+    var equivalent: String
 
-    static let fallback = HotKey(keyCode: UInt32(kVK_F13), modifiers: 0, label: "F13")
+    static let f13Equivalent = String(UnicodeScalar(NSF13FunctionKey)!)
+    static let fallback = HotKey(keyCode: UInt32(kVK_F13), modifiers: 0, label: "F13", equivalent: f13Equivalent)
+
+    var cocoaModifiers: NSEvent.ModifierFlags {
+        var flags: NSEvent.ModifierFlags = []
+        if modifiers & UInt32(controlKey) != 0 { flags.insert(.control) }
+        if modifiers & UInt32(optionKey) != 0 { flags.insert(.option) }
+        if modifiers & UInt32(shiftKey) != 0 { flags.insert(.shift) }
+        if modifiers & UInt32(cmdKey) != 0 { flags.insert(.command) }
+        return flags
+    }
 
     static func load() -> HotKey {
         let d = UserDefaults.standard
         guard let label = d.string(forKey: "hotKeyLabel") else { return fallback }
-        return HotKey(keyCode: UInt32(d.integer(forKey: "hotKeyCode")),
+        let code = UInt32(d.integer(forKey: "hotKeyCode"))
+        let saved = d.string(forKey: "hotKeyEquivalent")
+        return HotKey(keyCode: code,
                       modifiers: UInt32(d.integer(forKey: "hotKeyModifiers")),
-                      label: label)
+                      label: label,
+                      equivalent: saved ?? (code == UInt32(kVK_F13) ? f13Equivalent : ""))
     }
 
     func save() {
@@ -26,12 +40,14 @@ struct HotKey {
         d.set(Int(keyCode), forKey: "hotKeyCode")
         d.set(Int(modifiers), forKey: "hotKeyModifiers")
         d.set(label, forKey: "hotKeyLabel")
+        d.set(equivalent, forKey: "hotKeyEquivalent")
     }
 
-    init(keyCode: UInt32, modifiers: UInt32, label: String) {
+    init(keyCode: UInt32, modifiers: UInt32, label: String, equivalent: String) {
         self.keyCode = keyCode
         self.modifiers = modifiers
         self.label = label
+        self.equivalent = equivalent
     }
 
     init(event: NSEvent) {
@@ -42,7 +58,8 @@ struct HotKey {
         if flags.contains(.option) { carbon |= UInt32(optionKey); text += "⌥" }
         if flags.contains(.shift) { carbon |= UInt32(shiftKey); text += "⇧" }
         if flags.contains(.command) { carbon |= UInt32(cmdKey); text += "⌘" }
-        self.init(keyCode: UInt32(event.keyCode), modifiers: carbon, label: text + HotKey.keyName(event))
+        self.init(keyCode: UInt32(event.keyCode), modifiers: carbon, label: text + HotKey.keyName(event),
+                  equivalent: (event.characters(byApplyingModifiers: []) ?? "").lowercased())
     }
 
     static let namedKeys: [Int: String] = [
@@ -114,7 +131,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         unregisterHotKey()
         let id = EventHotKeyID(signature: OSType(0x45494E4B), id: 1)
         let status = RegisterEventHotKey(hotKey.keyCode, hotKey.modifiers, id, GetApplicationEventTarget(), 0, &hotKeyRef)
-        refreshItem.title = "Refresh screen  (\(hotKey.label))"
+        refreshItem.title = hotKey.equivalent.isEmpty ? "Refresh screen  (\(hotKey.label))" : "Refresh screen"
+        refreshItem.keyEquivalent = hotKey.equivalent
+        refreshItem.keyEquivalentModifierMask = hotKey.cocoaModifiers
         if status != noErr { NSLog("Hotkey registration failed: \(status)") }
         return status == noErr
     }
