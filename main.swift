@@ -68,6 +68,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var refreshItem: NSMenuItem!
     var loginItem: NSMenuItem!
     var durationItem: NSMenuItem!
+    var adaptiveItem: NSMenuItem!
+    var solidItem: NSMenuItem!
+    var adaptive = defaults.object(forKey: "adaptive") == nil ? true : defaults.bool(forKey: "adaptive")
     var hotKey = HotKey.load()
     var hotKeyRef: EventHotKeyRef?
     var flashing = false
@@ -92,6 +95,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         durationItem.submenu = durations
         menu.addItem(durationItem)
         updateDurationState()
+        adaptiveItem = NSMenuItem(title: "Adaptive flash", action: #selector(pickStyle(_:)), keyEquivalent: "")
+        solidItem = NSMenuItem(title: "Black / white flash", action: #selector(pickStyle(_:)), keyEquivalent: "")
+        menu.addItem(adaptiveItem)
+        menu.addItem(solidItem)
+        updateStyleState()
         menu.addItem(.separator())
         loginItem = NSMenuItem(title: "Launch at login", action: #selector(toggleLogin), keyEquivalent: "")
         menu.addItem(loginItem)
@@ -168,6 +176,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         flashing = true
         let eink = NSScreen.screens.filter { $0.localizedName == einkDisplayName }
         let screens = eink.isEmpty ? NSScreen.screens : eink
+        if adaptive {
+            flashAdaptive(screens)
+        } else {
+            flashSolid(screens)
+        }
+    }
+
+    func flashAdaptive(_ screens: [NSScreen]) {
+        let ids = screens.compactMap { $0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID }
+        let size = 256
+        let far = (0..<size).map { CGGammaValue($0 < size / 2 ? 1 : 0) }
+        let near = (0..<size).map { CGGammaValue($0 < size / 2 ? 0 : 1) }
+        let hold = holdSeconds
+        ids.forEach { CGSetDisplayTransferByTable($0, UInt32(size), far, far, far) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
+            ids.forEach { CGSetDisplayTransferByTable($0, UInt32(size), near, near, near) }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold * 2) {
+            CGDisplayRestoreColorSyncSettings()
+            self.flashing = false
+        }
+    }
+
+    func flashSolid(_ screens: [NSScreen]) {
         let windows: [NSWindow] = screens.map { screen in
             let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
             w.isReleasedWhenClosed = false
@@ -186,6 +218,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             windows.forEach { $0.close() }
             self.flashing = false
         }
+    }
+
+    @objc func pickStyle(_ sender: NSMenuItem) {
+        adaptive = sender === adaptiveItem
+        defaults.set(adaptive, forKey: "adaptive")
+        updateStyleState()
+    }
+
+    func updateStyleState() {
+        adaptiveItem.state = adaptive ? .on : .off
+        solidItem.state = adaptive ? .off : .on
     }
 
     @objc func pickDuration(_ sender: NSMenuItem) {
