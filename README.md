@@ -94,7 +94,7 @@ Inside `main.swift`:
 - **Flash** -- two display gamma tables set with
   `CGSetDisplayTransferByTable`. The first maps every channel value to its far
   extreme (below half to full, above half to zero), the second to its near
-  extreme; then `CGDisplayRestoreColorSyncSettings` brings the picture back.
+  extreme; then the table read before the flash is put back.
   It needs no screenshot and no Screen Recording permission, and it acts on
   live content. A single inverted frame was tried first and cleared white
   areas worse than two phases.
@@ -103,8 +103,8 @@ Inside `main.swift`:
 ## Known limitations
 
 - **Not a hardware refresh.** Heavy ghosting may need the real button.
-- **The flash resets display gamma.** Apps that keep their own gamma
-  table (software brightness or colour adjustments) may need to reapply it
-  after a flash.
+- **The restored gamma lives as long as the agent.** After a flash the display
+  keeps the table it had before, but macOS drops it when the agent quits and
+  falls back to the system colour profile.
 - **A hotkey taken by another app cannot be registered.** The previous one is
   kept in that case.

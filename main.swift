@@ -95,6 +95,32 @@ struct HotKey {
     }
 }
 
+struct SavedGamma {
+    let display: CGDirectDisplayID
+    var red: [CGGammaValue]
+    var green: [CGGammaValue]
+    var blue: [CGGammaValue]
+    var count: UInt32 = 0
+    var valid = false
+
+    init(display: CGDirectDisplayID) {
+        self.display = display
+        let capacity = max(CGDisplayGammaTableCapacity(display), 256)
+        red = [CGGammaValue](repeating: 0, count: Int(capacity))
+        green = red
+        blue = red
+        valid = CGGetDisplayTransferByTable(display, capacity, &red, &green, &blue, &count) == .success && count > 0
+    }
+
+    func restore() {
+        if valid {
+            CGSetDisplayTransferByTable(display, count, red, green, blue)
+        } else {
+            CGDisplayRestoreColorSyncSettings()
+        }
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var refreshItem: NSMenuItem!
@@ -207,12 +233,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let far = (0..<size).map { CGGammaValue($0 < size / 2 ? 1 : 0) }
         let near = (0..<size).map { CGGammaValue($0 < size / 2 ? 0 : 1) }
         let hold = holdSeconds
+        let saved = ids.map { SavedGamma(display: $0) }
         ids.forEach { CGSetDisplayTransferByTable($0, UInt32(size), far, far, far) }
         DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
             ids.forEach { CGSetDisplayTransferByTable($0, UInt32(size), near, near, near) }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + hold * 2) {
-            CGDisplayRestoreColorSyncSettings()
+            saved.forEach { $0.restore() }
             self.flashing = false
         }
     }
