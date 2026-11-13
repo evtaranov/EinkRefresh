@@ -12,8 +12,22 @@ struct HotKey {
     var label: String
     var equivalent: String
 
-    static let f13Equivalent = String(UnicodeScalar(NSF13FunctionKey)!)
-    static let fallback = HotKey(keyCode: UInt32(kVK_F13), modifiers: 0, label: "F13", equivalent: f13Equivalent)
+    static let fallback = HotKey(keyCode: UInt32(kVK_F13), modifiers: 0, label: "F13",
+                                 equivalent: namedEquivalents[kVK_F13] ?? "")
+
+    static let namedEquivalents: [Int: String] = {
+        let functionKeys = [kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7, kVK_F8, kVK_F9, kVK_F10,
+                            kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20]
+        var map: [Int: Int] = [
+            kVK_Space: 0x20, kVK_Return: 0x0D, kVK_Tab: 0x09, kVK_Delete: 0x08,
+            kVK_ForwardDelete: NSDeleteFunctionKey, kVK_Home: NSHomeFunctionKey, kVK_End: NSEndFunctionKey,
+            kVK_PageUp: NSPageUpFunctionKey, kVK_PageDown: NSPageDownFunctionKey,
+            kVK_LeftArrow: NSLeftArrowFunctionKey, kVK_RightArrow: NSRightArrowFunctionKey,
+            kVK_UpArrow: NSUpArrowFunctionKey, kVK_DownArrow: NSDownArrowFunctionKey,
+        ]
+        for (index, key) in functionKeys.enumerated() { map[key] = NSF1FunctionKey + index }
+        return map.compactMapValues { UnicodeScalar($0).map { String($0) } }
+    }()
 
     var cocoaModifiers: NSEvent.ModifierFlags {
         var flags: NSEvent.ModifierFlags = []
@@ -28,11 +42,11 @@ struct HotKey {
         let d = UserDefaults.standard
         guard let label = d.string(forKey: "hotKeyLabel") else { return fallback }
         let code = UInt32(d.integer(forKey: "hotKeyCode"))
-        let saved = d.string(forKey: "hotKeyEquivalent")
+        let saved = namedEquivalents[Int(code)] ?? d.string(forKey: "hotKeyEquivalent")
         return HotKey(keyCode: code,
                       modifiers: UInt32(d.integer(forKey: "hotKeyModifiers")),
                       label: label,
-                      equivalent: saved ?? (code == UInt32(kVK_F13) ? f13Equivalent : ""))
+                      equivalent: saved ?? "")
     }
 
     func save() {
@@ -59,7 +73,8 @@ struct HotKey {
         if flags.contains(.shift) { carbon |= UInt32(shiftKey); text += "⇧" }
         if flags.contains(.command) { carbon |= UInt32(cmdKey); text += "⌘" }
         self.init(keyCode: UInt32(event.keyCode), modifiers: carbon, label: text + HotKey.keyName(event),
-                  equivalent: (event.characters(byApplyingModifiers: []) ?? "").lowercased())
+                  equivalent: HotKey.namedEquivalents[Int(event.keyCode)]
+                      ?? (event.characters(byApplyingModifiers: []) ?? "").lowercased())
     }
 
     static let namedKeys: [Int: String] = [
